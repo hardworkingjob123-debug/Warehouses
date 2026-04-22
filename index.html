@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>冷鏈核心項目看板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background-color: #020617;
+            color: #e2e8f0;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header { padding: 1rem 1.5rem; flex-shrink: 0; }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            gap: 1rem;
+            padding: 0 1.5rem 1.5rem 1.5rem;
+            min-height: 0;
+        }
+
+        .map-container {
+            flex: 4; 
+            position: relative;
+            background: #0f172a;
+            border-radius: 20px;
+            border: 1px solid #1e293b;
+            overflow: hidden;
+        }
+        #map { height: 100%; width: 100%; z-index: 1; }
+
+        .list-container {
+            flex: 1; 
+            min-width: 300px; 
+            max-width: 340px; 
+            background: #0f172a;
+            border-radius: 20px;
+            border: 1px solid #1e293b;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .label-container {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .zoom-hide-labels .label-container { opacity: 0; transition: opacity 0.2s; }
+        .label-sz { border-left: 2px solid #2563eb; }
+        .label-esr { border-left: 2px solid #10b981; }
+        .label-hk { border-left: 2px solid #facc15; color: #facc15; }
+
+        .custom-marker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            border-radius: 50% 50% 50% 0;
+            border: 1.5px solid white;
+            transform: rotate(-45deg);
+        }
+        .marker-sz { background: #2563eb; }
+        .marker-esr { background: #10b981; }
+        .marker-hk { background: #facc15; border: 1.5px solid #a16207; color: #713f12; }
+
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        
+        .path-animation {
+            stroke-dasharray: 8, 8;
+            animation: dash 30s linear infinite;
+        }
+        @keyframes dash { to { stroke-dashoffset: -1000; } }
+
+        .active-card {
+            border-color: #3b82f6 !important;
+            background-color: rgba(59, 130, 246, 0.1) !important;
+        }
+
+        /* Leaflet Popup Styling */
+        .leaflet-popup-content-wrapper { background: #1e293b; color: white; border-radius: 12px; }
+        .leaflet-popup-tip { background: #1e293b; }
+    </style>
+</head>
+<body>
+    <header class="flex justify-between items-center">
+        <div>
+            <div class="flex items-center gap-2 mb-0.5">
+                <span class="bg-blue-600 text-white px-2 py-0.5 rounded text-lg font-black">LOG</span>
+                <h1 class="text-xl font-extrabold text-white">深國際 & ESR 冷鏈項目地圖</h1>
+            </div>
+            <p class="text-slate-500 text-xs font-medium">數據已根據客戶 CSV 座標校正 | 基準點：香港葵涌</p>
+        </div>
+        <button id="reset-view" class="bg-slate-800 hover:bg-slate-700 px-4 py-1.5 rounded-lg transition-all font-bold text-xs border border-slate-700">🔄 重置全覽</button>
+    </header>
+
+    <main class="main-content">
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="absolute bottom-4 left-4 z-[1000] bg-slate-900/90 backdrop-blur p-3 rounded-lg border border-slate-700 space-y-1.5">
+                <div class="flex items-center gap-2 text-[10px] font-bold text-slate-300">
+                    <span class="w-2.5 h-2.5 rounded-full bg-yellow-400"></span> 香港 Chillboxx
+                </div>
+                <div class="flex items-center gap-2 text-[10px] font-bold text-slate-300">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span> 深國際 (數據表提供)
+                </div>
+                <div class="flex items-center gap-2 text-[10px] font-bold text-slate-300">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> ESR 冷鏈項目
+                </div>
+            </div>
+        </div>
+
+        <div class="list-container">
+            <div class="p-4 border-b border-slate-800 bg-slate-900/50">
+                <h2 class="text-white text-sm font-bold">項目詳情</h2>
+                <p class="text-slate-500 text-[9px] uppercase font-black tracking-wider mt-0.5">點擊卡片查看自動化及托位資訊</p>
+            </div>
+            <div id="warehouse-list" class="flex-1 overflow-y-auto p-3 space-y-2 custom-scroll"></div>
+        </div>
+    </main>
+
+    <script>
+        const CHILLBOXX = { lat: 22.3615, lng: 114.1277, name: "Chillboxx 葵涌", company: "香港" };
+        
+        // 數據完全採用 CSV 提供之座標與地址
+        const rawData = [
+            // 深國際 9 大核心項目
+            { name: "深圳黎光冷庫項目", company: "深國際", lat: 22.7535, lng: 114.0538, addr: "深圳龍華區港深莞走廊中心", area: "50,000", auto: "✓", pallet: "33,637 托" },
+            { name: "上海閔行冷鏈園", company: "深國際", lat: 31.0264, lng: 121.3852, addr: "上海閔行區向陽路1135號", area: "52,500", auto: "x", pallet: "12,580 托" },
+            { name: "石家莊正定冷鏈物流園", company: "深國際", lat: 38.1465, lng: 114.5684, addr: "石家庄市正定縣車站西街68號", area: "100,000", auto: "✓", pallet: "未詳列" },
+            { name: "南京江寧空港冷鏈產業園", company: "深國際", lat: 31.8155, lng: 118.8252, addr: "南京市江寧區神舟路36號", area: "32,691", auto: "✓", pallet: "30,000 托" },
+            { name: "杭州大江東冷鏈項目", company: "深國際", lat: 30.3125, lng: 120.5912, addr: "杭州錢塘新區大江東園區", area: "45,800", auto: "✓", pallet: "43,452 托" },
+            { name: "無錫惠山冷鏈項目", company: "深國際", lat: 31.6745, lng: 120.2542, addr: "無錫市惠山區堰新路", area: "38,000", auto: "✓", pallet: "未詳列" },
+            { name: "合肥肥西冷鏈項目", company: "深國際", lat: 31.7255, lng: 117.1852, addr: "合肥市肥西桃花工業園", area: "42,000", auto: "✓", pallet: "未詳列" },
+            { name: "武漢東西湖冷鏈項目", company: "深國際", lat: 30.6252, lng: 114.1255, addr: "武漢市東西湖區高橋五路", area: "55,000", auto: "✓", pallet: "53,302 托" },
+            { name: "成都青白江冷鏈項目", company: "深國際", lat: 30.8242, lng: 104.2542, addr: "成都青白江區鐵路港園區", area: "60,000", auto: "✓", pallet: "未詳列" },
+            
+            // ESR 4 大核心項目
+            { name: "ESR 廣州黃埔冷鏈", company: "ESR", lat: 23.1255, lng: 113.4812, addr: "黃埔區雲埔工業園", area: "80,000", auto: "✓", pallet: "50,000+ 托" },
+            { name: "ESR 上海青浦冷鏈", company: "ESR", lat: 31.1458, lng: 121.1248, addr: "青浦工業園區", area: "120,000", auto: "✓", pallet: "80,000+ 托" },
+            { name: "ESR 成都雙流冷鏈", company: "ESR", lat: 30.5708, lng: 103.9238, addr: "雙流航空港物流園", area: "45,000", auto: "-", pallet: "未詳列" },
+            { name: "ESR 廊坊永清冷鏈", company: "ESR", lat: 39.3155, lng: 116.5122, addr: "廊坊市永清經濟開發區", area: "65,000", auto: "✓", pallet: "40,000+ 托" }
+        ];
+
+        function calcDist(p1, p2) {
+            const R = 6371; 
+            const dLat = (p2.lat - p1.lat) * Math.PI / 180;
+            const dLon = (p2.lng - p1.lng) * Math.PI / 180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(p1.lat*Math.PI/180)*Math.cos(p2.lat*Math.PI/180)*Math.sin(dLon/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        let map, fGroup, activeLine = null;
+
+        function init() {
+            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([30, 114], 5);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+
+            map.on('zoomend', () => {
+                const z = map.getZoom();
+                const mapDiv = document.getElementById('map');
+                if (z < 5) mapDiv.classList.add('zoom-hide-labels');
+                else mapDiv.classList.remove('zoom-hide-labels');
+            });
+
+            fGroup = L.featureGroup();
+
+            const chillMarker = L.marker([CHILLBOXX.lat, CHILLBOXX.lng], {
+                zIndexOffset: 1000,
+                icon: L.divIcon({
+                    className: 'custom-marker marker-hk',
+                    html: `🏠`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                })
+            }).addTo(map);
+            
+            chillMarker.bindTooltip(CHILLBOXX.name, {
+                permanent: true, direction: 'bottom', offset: [0, 12], className: 'label-container label-hk'
+            });
+
+            const projectsWithDist = rawData.map(w => ({ ...w, dist: calcDist(CHILLBOXX, w) }));
+            const finalSorted = projectsWithDist.sort((a, b) => a.dist - b.dist);
+
+            const list = document.getElementById('warehouse-list');
+            list.innerHTML = '';
+
+            finalSorted.forEach((w) => {
+                const isESR = w.company === 'ESR';
+                const themeClass = isESR ? 'marker-esr' : 'marker-sz';
+                const labelTheme = isESR ? 'label-esr' : 'label-sz';
+                const textTheme = isESR ? 'text-emerald-400' : 'text-blue-400';
+                const bgTheme = isESR ? 'bg-emerald-500/10' : 'bg-blue-500/10';
+
+                const marker = L.marker([w.lat, w.lng], {
+                    icon: L.divIcon({
+                        className: `custom-marker ${themeClass}`,
+                        iconSize: [16, 16],
+                        iconAnchor: [8, 16]
+                    })
+                }).addTo(map);
+
+                // 標籤排斥優化
+                let labelDir = 'top';
+                let labelOffset = [0, -20];
+                if (w.name.includes("黎光")) { labelDir = 'right'; labelOffset = [12, -12]; }
+                if (w.name.includes("黃埔")) { labelDir = 'left'; labelOffset = [-12, -12]; }
+
+                marker.bindTooltip(w.name.replace("冷庫項目","").replace("冷鏈項目","").replace("冷鏈園",""), { 
+                    permanent: true, direction: labelDir, offset: labelOffset, className: `label-container ${labelTheme}`
+                });
+
+                const popupHtml = `
+                    <div class="p-2 min-w-[200px]">
+                        <div class="text-blue-400 text-[10px] font-black mb-1 uppercase">${w.company} LOGISTICS</div>
+                        <div class="text-white font-bold text-[13px] mb-2">${w.name}</div>
+                        <div class="space-y-1 text-[11px] text-slate-300">
+                            <p>📍 ${w.addr}</p>
+                            <p>🏗️ 面積: ${w.area} ㎡</p>
+                            <p>🤖 自動化: ${w.auto === '✓' ? '支援' : '標準倉'}</p>
+                            <p>📦 托位: ${w.pallet}</p>
+                        </div>
+                    </div>
+                `;
+                marker.bindPopup(popupHtml, { closeButton: false });
+                
+                fGroup.addLayer(marker);
+                w.marker = marker; 
+
+                const card = document.createElement('div');
+                card.className = `warehouse-card group p-3 bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-500 transition-all cursor-pointer flex justify-between items-center shadow-md`;
+                card.innerHTML = `
+                    <div class="flex-1 pr-2 overflow-hidden">
+                        <h4 class="font-bold text-white text-[12px] group-hover:text-blue-400 transition-colors truncate">${w.name}</h4>
+                        <div class="flex items-center gap-1.5 mt-0.5">
+                            <span class="${isESR ? 'text-emerald-500' : 'text-blue-500'} text-[9px] font-black uppercase">${w.company}</span>
+                            <span class="text-slate-700 text-[9px]">|</span>
+                            <span class="text-slate-300 text-[9px]">${w.auto === '✓' ? '自動化' : '標準'}</span>
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0 text-right">
+                        <span class="text-[10px] font-black ${textTheme} ${bgTheme} px-2 py-1 rounded-md border border-white/5 inline-block min-w-[65px] text-center">
+                            ${w.dist.toFixed(0)} km
+                        </span>
+                    </div>
+                `;
+                
+                card.onclick = () => {
+                    document.querySelectorAll('.warehouse-card').forEach(c => c.classList.remove('active-card'));
+                    card.classList.add('active-card');
+                    w.marker.openPopup();
+                    drawLine(CHILLBOXX, w, isESR ? '#10b981' : '#3b82f6');
+                    map.setView([w.lat, w.lng], 8, { animate: true });
+                };
+                list.appendChild(card);
+            });
+
+            map.fitBounds(fGroup.getBounds().pad(0.2));
+            
+            document.getElementById('reset-view').onclick = () => {
+                if (activeLine) { map.removeLayer(activeLine); activeLine = null; }
+                document.querySelectorAll('.warehouse-card').forEach(c => c.classList.remove('active-card'));
+                map.fitBounds(fGroup.getBounds().pad(0.2));
+            };
+        }
+
+        function drawLine(start, end, color) {
+            if (activeLine) map.removeLayer(activeLine);
+            activeLine = L.polyline(
+                [[start.lat, start.lng], [end.lat, end.lng]],
+                { color: color, weight: 1.5, opacity: 0.5, dashArray: '6, 6', className: 'path-animation' }
+            ).addTo(map);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
