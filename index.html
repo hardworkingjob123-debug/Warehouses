@@ -21,18 +21,19 @@
             overflow: hidden;
         }
 
-        header { padding: 1rem 1.5rem; flex-shrink: 0; }
+        header { padding: 1.25rem 1.5rem; flex-shrink: 0; }
 
         .main-content {
             display: flex;
             flex: 1;
-            gap: 1rem;
+            gap: 1.25rem;
             padding: 0 1.5rem 1.5rem 1.5rem;
             min-height: 0;
         }
 
+        /* 調整地圖比例 */
         .map-container {
-            flex: 4; 
+            flex: 3; 
             position: relative;
             background: #0f172a;
             border-radius: 20px;
@@ -41,10 +42,11 @@
         }
         #map { height: 100%; width: 100%; z-index: 1; }
 
+        /* 詳情欄目增加寬度與比例 */
         .list-container {
             flex: 1; 
-            min-width: 300px; 
-            max-width: 340px; 
+            min-width: 360px; 
+            max-width: 420px; 
             background: #0f172a;
             border-radius: 20px;
             border: 1px solid #1e293b;
@@ -57,18 +59,18 @@
             background: rgba(15, 23, 42, 0.95);
             backdrop-filter: blur(4px);
             border: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 2px 6px;
+            padding: 4px 8px;
             border-radius: 4px;
             color: white;
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 600;
             white-space: nowrap;
             pointer-events: none;
         }
         .zoom-hide-labels .label-container { opacity: 0; transition: opacity 0.2s; }
-        .label-sz { border-left: 2px solid #2563eb; }
-        .label-esr { border-left: 2px solid #10b981; }
-        .label-hk { border-left: 2px solid #facc15; color: #facc15; }
+        .label-sz { border-left: 3px solid #2563eb; }
+        .label-esr { border-left: 3px solid #10b981; }
+        .label-hk { border-left: 3px solid #facc15; color: #facc15; }
 
         .custom-marker {
             display: flex;
@@ -76,14 +78,14 @@
             justify-content: center;
             color: white;
             border-radius: 50% 50% 50% 0;
-            border: 1.5px solid white;
+            border: 2px solid white;
             transform: rotate(-45deg);
         }
         .marker-sz { background: #2563eb; }
         .marker-esr { background: #10b981; }
-        .marker-hk { background: #facc15; border: 1.5px solid #a16207; color: #713f12; }
+        .marker-hk { background: #facc15; border: 2px solid #a16207; color: #713f12; }
 
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-track { background: transparent; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         
@@ -95,57 +97,62 @@
 
         .active-card {
             border-color: #3b82f6 !important;
-            background-color: rgba(59, 130, 246, 0.1) !important;
+            background-color: rgba(59, 130, 246, 0.15) !important;
+            transform: translateX(4px);
+        }
+
+        .warehouse-card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         /* Leaflet Popup Styling */
-        .leaflet-popup-content-wrapper { background: #1e293b; color: white; border-radius: 12px; }
+        .leaflet-popup-content-wrapper { background: #1e293b; color: white; border-radius: 12px; border: 1px solid #334155; }
         .leaflet-popup-tip { background: #1e293b; }
     </style>
 </head>
 <body>
     <header class="flex justify-between items-center">
         <div>
-            <div class="flex items-center gap-2 mb-0.5">
-                <span class="bg-blue-600 text-white px-2 py-0.5 rounded text-lg font-black">LOG</span>
-                <h1 class="text-xl font-extrabold text-white">深國際 & ESR 冷鏈項目地圖</h1>
+            <div class="flex items-center gap-3 mb-1">
+                <span class="bg-blue-600 text-white px-2.5 py-1 rounded-md text-xl font-black shadow-lg">LOG</span>
+                <h1 class="text-2xl font-extrabold text-white tracking-tight">深國際 & ESR 冷鏈看板</h1>
             </div>
-            <p class="text-slate-500 text-xs font-medium">數據已根據客戶 CSV 座標校正 | 基準點：香港葵涌</p>
+            <p class="text-slate-400 text-sm font-medium">實時分佈分析 | 中心點：香港葵涌 Chillboxx</p>
         </div>
-        <button id="reset-view" class="bg-slate-800 hover:bg-slate-700 px-4 py-1.5 rounded-lg transition-all font-bold text-xs border border-slate-700">🔄 重置全覽</button>
+        <button id="reset-view" class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2 rounded-xl transition-all font-bold text-sm border border-slate-600 shadow-lg">🔄 重置全覽視圖</button>
     </header>
 
     <main class="main-content">
-        <div class="map-container">
+        <!-- 左側地圖 -->
+        <div class="map-container shadow-2xl">
             <div id="map"></div>
-            <div class="absolute bottom-4 left-4 z-[1000] bg-slate-900/90 backdrop-blur p-3 rounded-lg border border-slate-700 space-y-1.5">
-                <div class="flex items-center gap-2 text-[10px] font-bold text-slate-300">
-                    <span class="w-2.5 h-2.5 rounded-full bg-yellow-400"></span> 香港 Chillboxx
+            <div class="absolute bottom-6 left-6 z-[1000] bg-slate-900/95 backdrop-blur-md p-4 rounded-xl border border-slate-700 shadow-2xl space-y-2.5">
+                <div class="flex items-center gap-3 text-xs font-bold text-slate-200">
+                    <span class="w-3.5 h-3.5 rounded-full bg-yellow-400 ring-2 ring-yellow-400/20"></span> 香港 Chillboxx
                 </div>
-                <div class="flex items-center gap-2 text-[10px] font-bold text-slate-300">
-                    <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span> 深國際 (數據表提供)
+                <div class="flex items-center gap-3 text-xs font-bold text-slate-200">
+                    <span class="w-3.5 h-3.5 rounded-full bg-blue-600 ring-2 ring-blue-600/20"></span> 深國際核心 (9)
                 </div>
-                <div class="flex items-center gap-2 text-[10px] font-bold text-slate-300">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> ESR 冷鏈項目
+                <div class="flex items-center gap-3 text-xs font-bold text-slate-200">
+                    <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20"></span> ESR 冷鏈 (4)
                 </div>
             </div>
         </div>
 
-        <div class="list-container">
-            <div class="p-4 border-b border-slate-800 bg-slate-900/50">
-                <h2 class="text-white text-sm font-bold">項目詳情</h2>
-                <p class="text-slate-500 text-[9px] uppercase font-black tracking-wider mt-0.5">點擊卡片查看自動化及托位資訊</p>
+        <!-- 右側清單：更新標題為「項目詳情與 Chillboxx 距離」 -->
+        <div class="list-container shadow-2xl">
+            <div class="p-6 border-b border-slate-800 bg-slate-900/80">
+                <h2 class="text-white text-xl font-bold leading-tight">項目詳情與<br>Chillboxx 距離</h2>
+                <p class="text-slate-500 text-[10px] font-semibold uppercase tracking-widest mt-2 border-t border-slate-800 pt-2">排序基準：地理直線距離 (KM)</p>
             </div>
-            <div id="warehouse-list" class="flex-1 overflow-y-auto p-3 space-y-2 custom-scroll"></div>
+            <div id="warehouse-list" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scroll"></div>
         </div>
     </main>
 
     <script>
         const CHILLBOXX = { lat: 22.3615, lng: 114.1277, name: "Chillboxx 葵涌", company: "香港" };
         
-        // 數據完全採用 CSV 提供之座標與地址
         const rawData = [
-            // 深國際 9 大核心項目
             { name: "深圳黎光冷庫項目", company: "深國際", lat: 22.7535, lng: 114.0538, addr: "深圳龍華區港深莞走廊中心", area: "50,000", auto: "✓", pallet: "33,637 托" },
             { name: "上海閔行冷鏈園", company: "深國際", lat: 31.0264, lng: 121.3852, addr: "上海閔行區向陽路1135號", area: "52,500", auto: "x", pallet: "12,580 托" },
             { name: "石家莊正定冷鏈物流園", company: "深國際", lat: 38.1465, lng: 114.5684, addr: "石家庄市正定縣車站西街68號", area: "100,000", auto: "✓", pallet: "未詳列" },
@@ -155,8 +162,6 @@
             { name: "合肥肥西冷鏈項目", company: "深國際", lat: 31.7255, lng: 117.1852, addr: "合肥市肥西桃花工業園", area: "42,000", auto: "✓", pallet: "未詳列" },
             { name: "武漢東西湖冷鏈項目", company: "深國際", lat: 30.6252, lng: 114.1255, addr: "武漢市東西湖區高橋五路", area: "55,000", auto: "✓", pallet: "53,302 托" },
             { name: "成都青白江冷鏈項目", company: "深國際", lat: 30.8242, lng: 104.2542, addr: "成都青白江區鐵路港園區", area: "60,000", auto: "✓", pallet: "未詳列" },
-            
-            // ESR 4 大核心項目
             { name: "ESR 廣州黃埔冷鏈", company: "ESR", lat: 23.1255, lng: 113.4812, addr: "黃埔區雲埔工業園", area: "80,000", auto: "✓", pallet: "50,000+ 托" },
             { name: "ESR 上海青浦冷鏈", company: "ESR", lat: 31.1458, lng: 121.1248, addr: "青浦工業園區", area: "120,000", auto: "✓", pallet: "80,000+ 托" },
             { name: "ESR 成都雙流冷鏈", company: "ESR", lat: 30.5708, lng: 103.9238, addr: "雙流航空港物流園", area: "45,000", auto: "-", pallet: "未詳列" },
@@ -191,13 +196,13 @@
                 icon: L.divIcon({
                     className: 'custom-marker marker-hk',
                     html: `🏠`,
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12]
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16]
                 })
             }).addTo(map);
             
             chillMarker.bindTooltip(CHILLBOXX.name, {
-                permanent: true, direction: 'bottom', offset: [0, 12], className: 'label-container label-hk'
+                permanent: true, direction: 'bottom', offset: [0, 18], className: 'label-container label-hk'
             });
 
             const projectsWithDist = rawData.map(w => ({ ...w, dist: calcDist(CHILLBOXX, w) }));
@@ -211,35 +216,34 @@
                 const themeClass = isESR ? 'marker-esr' : 'marker-sz';
                 const labelTheme = isESR ? 'label-esr' : 'label-sz';
                 const textTheme = isESR ? 'text-emerald-400' : 'text-blue-400';
-                const bgTheme = isESR ? 'bg-emerald-500/10' : 'bg-blue-500/10';
+                const bgTheme = isESR ? 'bg-emerald-500/15' : 'bg-blue-500/15';
 
                 const marker = L.marker([w.lat, w.lng], {
                     icon: L.divIcon({
                         className: `custom-marker ${themeClass}`,
-                        iconSize: [16, 16],
-                        iconAnchor: [8, 16]
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 20]
                     })
                 }).addTo(map);
 
-                // 標籤排斥優化
                 let labelDir = 'top';
-                let labelOffset = [0, -20];
-                if (w.name.includes("黎光")) { labelDir = 'right'; labelOffset = [12, -12]; }
-                if (w.name.includes("黃埔")) { labelDir = 'left'; labelOffset = [-12, -12]; }
+                let labelOffset = [0, -28];
+                if (w.name.includes("黎光")) { labelDir = 'right'; labelOffset = [16, -16]; }
+                if (w.name.includes("黃埔")) { labelDir = 'left'; labelOffset = [-16, -16]; }
 
                 marker.bindTooltip(w.name.replace("冷庫項目","").replace("冷鏈項目","").replace("冷鏈園",""), { 
                     permanent: true, direction: labelDir, offset: labelOffset, className: `label-container ${labelTheme}`
                 });
 
                 const popupHtml = `
-                    <div class="p-2 min-w-[200px]">
-                        <div class="text-blue-400 text-[10px] font-black mb-1 uppercase">${w.company} LOGISTICS</div>
-                        <div class="text-white font-bold text-[13px] mb-2">${w.name}</div>
-                        <div class="space-y-1 text-[11px] text-slate-300">
-                            <p>📍 ${w.addr}</p>
-                            <p>🏗️ 面積: ${w.area} ㎡</p>
-                            <p>🤖 自動化: ${w.auto === '✓' ? '支援' : '標準倉'}</p>
-                            <p>📦 托位: ${w.pallet}</p>
+                    <div class="p-3 min-w-[260px]">
+                        <div class="${isESR ? 'text-emerald-400' : 'text-blue-400'} text-[11px] font-black mb-1 uppercase tracking-wider">${w.company} LOGISTICS</div>
+                        <div class="text-white font-bold text-[16px] mb-3 leading-tight">${w.name}</div>
+                        <div class="space-y-2 text-[13px] text-slate-300">
+                            <div class="flex gap-2"><span>📍</span><span class="leading-snug">${w.addr}</span></div>
+                            <div class="flex gap-2"><span>🏗️</span><span>建築面積: ${w.area} ㎡</span></div>
+                            <div class="flex gap-2"><span>🤖</span><span>自動化: ${w.auto === '✓' ? '智慧自動化' : '標準冷鏈'}</span></div>
+                            <div class="flex gap-2"><span>📦</span><span>規模: ${w.pallet}</span></div>
                         </div>
                     </div>
                 `;
@@ -249,20 +253,20 @@
                 w.marker = marker; 
 
                 const card = document.createElement('div');
-                card.className = `warehouse-card group p-3 bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-500 transition-all cursor-pointer flex justify-between items-center shadow-md`;
+                card.className = `warehouse-card group p-5 bg-slate-900 border border-slate-800 rounded-2xl hover:border-slate-400 transition-all cursor-pointer flex justify-between items-center shadow-lg`;
                 card.innerHTML = `
-                    <div class="flex-1 pr-2 overflow-hidden">
-                        <h4 class="font-bold text-white text-[12px] group-hover:text-blue-400 transition-colors truncate">${w.name}</h4>
-                        <div class="flex items-center gap-1.5 mt-0.5">
-                            <span class="${isESR ? 'text-emerald-500' : 'text-blue-500'} text-[9px] font-black uppercase">${w.company}</span>
-                            <span class="text-slate-700 text-[9px]">|</span>
-                            <span class="text-slate-300 text-[9px]">${w.auto === '✓' ? '自動化' : '標準'}</span>
+                    <div class="flex-1 pr-4 overflow-hidden">
+                        <h4 class="font-bold text-white text-[15px] group-hover:text-blue-400 transition-colors truncate mb-1.5">${w.name}</h4>
+                        <div class="flex items-center gap-2.5">
+                            <span class="${isESR ? 'text-emerald-500 border-emerald-500/30' : 'text-blue-500 border-blue-500/30'} text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded border bg-white/5">${w.company}</span>
+                            <span class="text-slate-700 text-[10px]">|</span>
+                            <span class="text-slate-300 text-[12px] font-medium">${w.auto === '✓' ? '🤖 自動化系統' : '🏢 標準冷鏈'}</span>
                         </div>
                     </div>
                     <div class="flex-shrink-0 text-right">
-                        <span class="text-[10px] font-black ${textTheme} ${bgTheme} px-2 py-1 rounded-md border border-white/5 inline-block min-w-[65px] text-center">
-                            ${w.dist.toFixed(0)} km
-                        </span>
+                        <div class="text-[13px] font-black ${textTheme} ${bgTheme} px-3.5 py-2 rounded-xl border border-white/10 inline-block min-w-[85px] text-center shadow-inner">
+                            ${w.dist.toFixed(0)} <span class="text-[10px] opacity-70">KM</span>
+                        </div>
                     </div>
                 `;
                 
@@ -271,17 +275,17 @@
                     card.classList.add('active-card');
                     w.marker.openPopup();
                     drawLine(CHILLBOXX, w, isESR ? '#10b981' : '#3b82f6');
-                    map.setView([w.lat, w.lng], 8, { animate: true });
+                    map.setView([w.lat, w.lng], 9, { animate: true });
                 };
                 list.appendChild(card);
             });
 
-            map.fitBounds(fGroup.getBounds().pad(0.2));
+            map.fitBounds(fGroup.getBounds().pad(0.25));
             
             document.getElementById('reset-view').onclick = () => {
                 if (activeLine) { map.removeLayer(activeLine); activeLine = null; }
                 document.querySelectorAll('.warehouse-card').forEach(c => c.classList.remove('active-card'));
-                map.fitBounds(fGroup.getBounds().pad(0.2));
+                map.fitBounds(fGroup.getBounds().pad(0.25));
             };
         }
 
@@ -289,7 +293,7 @@
             if (activeLine) map.removeLayer(activeLine);
             activeLine = L.polyline(
                 [[start.lat, start.lng], [end.lat, end.lng]],
-                { color: color, weight: 1.5, opacity: 0.5, dashArray: '6, 6', className: 'path-animation' }
+                { color: color, weight: 2.5, opacity: 0.7, dashArray: '10, 10', className: 'path-animation' }
             ).addTo(map);
         }
 
